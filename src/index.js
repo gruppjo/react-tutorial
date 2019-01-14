@@ -54,13 +54,14 @@ class Game extends React.Component {
     this.state = {
       history: [{
         squares: Array(9).fill(null),
-        xIsNext: true
       }],
+      stepNumber: 0,
+      xIsNext: true
     };
   }
 
   handleClick(i) {
-    const history = this.state.history;
+    const history = this.state.history.slice(0, this.state.stepNumber + 1); // this slices history in case we're time traveling
     const current = history[history.length - 1];
     const squares = current.squares.slice(); // create copy
 
@@ -69,12 +70,20 @@ class Game extends React.Component {
       return;
     }
 
-    squares[i] = current.xIsNext ? 'X' : 'O';
+    squares[i] = this.state.xIsNext ? 'X' : 'O';
     this.setState({
       history: history.concat({ // concat doesn't mutate
         squares,
-        xIsNext: !current.xIsNext
       }),
+      stepNumber: history.length,
+      xIsNext: !this.state.xIsNext
+    });
+  }
+
+  jumpTo(step) {
+    this.setState({
+      stepNumber: step,
+      xIsNext: (step % 2) === 0
     });
   }
 
@@ -103,9 +112,8 @@ class Game extends React.Component {
 
   render() {
     const history = this.state.history;
-    const current = history[history.length - 1];
+    const current = history[this.state.stepNumber]; // this immediately updates the rendered board when time traveling
     const squares = current.squares;
-    const xIsNext = current.xIsNext;
     const winner = this.calculateWinner(squares);
 
     let status;
@@ -113,8 +121,23 @@ class Game extends React.Component {
       status = `Winner: ` + winner;
     }
     else {
-      status = `Next player: ${xIsNext ? 'X' : 'O'}`;
+      status = `Next player: ${this.state.xIsNext ? 'X' : 'O'}`;
     }
+
+    const moves = history.map((step, move) => {
+      const desc = move ?
+        `Go to move #${move}` :
+        `Go to game start`;
+      return (
+        <li key={move}>
+          {/* The moves are never re-ordered, deleted, or inserted in the middle, so it’s safe to use the move index as a key. */}
+          <button onClick={() => this.jumpTo(move)}>
+            {desc}
+          </button>
+        </li>
+      )
+
+    });
 
     return (
       <div className="game">
@@ -126,7 +149,7 @@ class Game extends React.Component {
         </div>
         <div className="game-info">
           <div>{status}</div>
-          <ol>{/* TODO */}</ol>
+          <ol>{moves}</ol>
         </div>
       </div>
     );
